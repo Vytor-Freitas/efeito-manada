@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Efeito Manada</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #111827; /* Dark background */
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: radial-gradient(#2d1b4e 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        h1, h2, h3, .font-heading {
+            font-family: 'Fredoka One', cursive;
+        }
+        
+        /* Gartic Phone inspired UI elements */
+        .card-brutal {
+            background-color: #5b21b6; /* Purple 800 */
+            border: 4px solid #000000;
+            border-radius: 16px;
+            box-shadow: 6px 6px 0px 0px #000000;
+        }
+        
+        .card-brutal-light {
+            background-color: #7c3aed; /* Purple 600 */
+            border: 4px solid #000000;
+            border-radius: 16px;
+            box-shadow: 4px 4px 0px 0px #000000;
+        }
+
+        .btn-brutal {
+            border: 4px solid #000000;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0px 0px #000000;
+            transition: all 0.1s ease-in-out;
+            font-family: 'Fredoka One', cursive;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .btn-brutal:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px 0px #000000;
+        }
+
+        .btn-brutal:disabled {
+            background-color: #6b7280;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 4px 4px 0px 0px #000000;
+        }
+        
+        .btn-primary { background-color: #10b981; color: white; }
+        .btn-secondary { background-color: #f59e0b; color: white; }
+        .btn-danger { background-color: #ef4444; color: white; }
+
+        .input-brutal {
+            border: 4px solid #000000;
+            border-radius: 12px;
+            padding: 12px;
+            color: #000;
+            font-weight: bold;
+            font-size: 1.1rem;
+            outline: none;
+            box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);
+        }
+
+        .input-brutal:focus {
+            border-color: #10b981;
+        }
+
+        /* Animations */
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        @keyframes pulse-fast {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pulse-fast { animation: pulse-fast 1s infinite; }
+
+        .hide { display: none !important; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #6b7280; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+    </style>
+</head>
+<body>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-5xl mx-auto flex-grow flex flex-col p-4 md:p-6 relative">
+        
+        <!-- Header / HUD -->
+        <header class="flex justify-between items-center mb-6 z-10 bg-gray-900 border-4 border-black p-3 rounded-xl shadow-[4px_4px_0_0_#000]">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-purple-600 rounded-full border-2 border-black flex items-center justify-center font-heading text-xl">
+                    🐄
+                </div>
+                <h1 class="text-xl md:text-2xl font-heading text-white tracking-wide text-shadow">Efeito Manada</h1>
+            </div>
+            <div id="user-info" class="hide flex items-center gap-3">
+                <span id="display-nickname" class="font-bold text-lg"></span>
+                <button id="btn-leave" class="btn-brutal btn-danger px-3 py-1 text-sm">Sair</button>
+            </div>
+        </header>
+
+        <!-- Screens Container -->
+        <div id="screens-container" class="flex-grow flex flex-col w-full relative h-full">
+
+            <!-- 1. LOGIN / ENTRY SCREEN -->
+            <div id="screen-login" class="flex-grow flex items-center justify-center animate-pop">
+                <div class="card-brutal p-8 w-full max-w-md text-center">
+                    <h2 class="text-3xl font-heading mb-6 text-yellow-400 drop-shadow-md">Bem-vindo!</h2>
+                    <p class="mb-4 text-gray-200">Escolha um apelido para jogar.</p>
+                    
+                    <div class="flex flex-col gap-4">
+                        <input type="text" id="input-nickname" class="input-brutal w-full" placeholder="Seu Nickname" maxlength="15" autocomplete="off">
+                        
+                        <div class="flex gap-2">
+                            <button id="btn-join-create" class="btn-brutal btn-primary py-3 flex-grow text-lg shadow-[4px_4px_0_0_#000]">
+                                Entrar
+                            </button>
+                        </div>
+                    </div>
+                    <div id="login-error" class="text-red-400 font-bold mt-3 hide">Erro ao entrar!</div>
+                </div>
+            </div>
+
+            <!-- 2. LOBBY SCREEN -->
+            <div id="screen-lobby" class="hide flex-grow flex flex-col md:flex-row gap-6 animate-pop h-full">
+                
+                <!-- Left panel: Players -->
+                <div class="card-brutal-light flex-grow md:w-2/3 p-4 flex flex-col relative h-full min-h-[300px]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-heading text-white">Jogadores (<span id="player-count">0</span>/10)</h2>
+                    </div>
+                    <div id="player-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4">
+                        <!-- Player items injected here -->
+                    </div>
+                </div>
+
+                <!-- Right panel: Room Info & Controls -->
+                <div class="card-brutal p-6 md:w-1/3 flex flex-col justify-between h-auto">
+                    <div>
+                        <h2 class="text-2xl font-heading mb-2 text-yellow-400">Sala de Espera</h2>
+                        <p class="text-sm text-gray-200 mb-6">Convide seus amigos enviando o link abaixo!</p>
+                        
+                        <div class="bg-black/30 p-3 border-2 border-black rounded-lg mb-6 flex items-center justify-between gap-2">
+                            <input type="text" id="room-url" class="bg-transparent text-white font-bold w-full outline-none text-sm" readonly>
+                            <button id="btn-copy-link" class="btn-brutal bg-blue-500 p-2 hover:bg-blue-600">📋</button>
+                        </div>
+                        
+                        <div id="host-controls" class="hide flex flex-col gap-3 p-4 bg-black/20 rounded-xl border-2 border-black">
+                            <h3 class="font-heading text-center text-sm text-gray-300">Controles do Host</h3>
+                            <button id="btn-start-game" class="btn-brutal btn-primary py-3 text-lg" disabled>
+                                Iniciar Jogo (Min 3)
+                            </button>
+                        </div>
+                        <div id="waiting-host-msg" class="text-center font-bold text-gray-300 mt-4">
+                            Aguardando o host iniciar a partida...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. GAME SCREEN -->
+            <div id="screen-game" class="hide flex-grow flex flex-col gap-4 animate-pop h-full relative">
+                
+                <!-- HUD: Players & Scores -->
+                <div class="card-brutal-light p-2 flex overflow-x-auto gap-3 items-center sticky top-0 z-20 min-h-[80px]">
+                    <div id="game-hud" class="flex gap-3 w-max px-2">
+                        <!-- Player HUD items injected here -->
+                    </div>
+                </div>
+
+                <!-- Game Area -->
+                <div class="card-brutal flex-grow p-6 flex flex-col relative items-center justify-center text-center mt-2">
+                    
+                    <!-- Phase: Answering -->
+                    <div id="phase-answering" class="w-full max-w-2xl flex flex-col items-center hide">
+                        <div class="text-6xl font-heading text-yellow-400 mb-2 drop-shadow-lg" id="timer-display">30</div>
+                        <h2 class="text-2xl md:text-4xl font-heading mb-8 text-white" id="current-prompt">Carregando pergunta...</h2>
+                        
+                        <div id="answer-form" class="w-full flex flex-col gap-4 items-center">
+                            <input type="text" id="input-answer" class="input-brutal w-full max-w-md text-center text-2xl py-4" placeholder="Sua resposta secreta" autocomplete="off" maxlength="30">
+                            <button id="btn-submit-answer" class="btn-brutal btn-secondary py-3 px-8 text-xl w-full max-w-md">Enviar</button>
+                        </div>
+                        <div id="answer-waiting" class="hide text-xl font-bold text-green-400 animate-pulse">
+                            Resposta enviada! Aguardando os outros...
+                        </div>
+                        <div class="mt-6 font-bold text-gray-300">
+                            Respostas: <span id="answers-count">0</span>/<span id="total-players-count">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Phase: Revealing -->
+                    <div id="phase-revealing" class="w-full flex flex-col items-center hide">
+                        <h2 class="text-3xl font-heading mb-2 text-yellow-400">Respostas da Rodada</h2>
+                        <h3 class="text-xl font-bold text-white mb-6 bg-black/40 px-4 py-2 rounded-xl border-2 border-black" id="reveal-prompt">...</h3>
+                        
+                        <div id="reveal-results" class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                            <!-- Answer groups injected here -->
+                        </div>
+
+                        <div id="host-next-round" class="hide mt-4">
+                            <button id="btn-next-round" class="btn-brutal btn-primary py-3 px-8 text-xl">Próxima Rodada</button>
+                        </div>
+                        <div id="waiting-next-msg" class="text-gray-300 font-bold mt-4">
+                            Aguardando o host avançar...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. WINNER SCREEN -->
+            <div id="screen-winner" class="hide flex-grow flex items-center justify-center animate-pop">
+                <div class="card-brutal p-8 w-full max-w-lg text-center flex flex-col items-center">
+                    <div class="text-6xl mb-4">🏆</div>
+                    <h2 class="text-4xl font-heading mb-2 text-yellow-400">Temos um Vencedor!</h2>
+                    <p class="text-2xl font-bold text-white mb-6" id="winner-name">Jogador</p>
+                    
+                    <button id="btn-play-again" class="btn-brutal btn-primary py-3 px-8 text-xl hide mt-4">Jogar Novamente</button>
+                    <p id="winner-wait-msg" class="text-gray-300 font-bold mt-4">O host pode reiniciar a partida.</p>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <!-- UI Overlays & Modals -->
+    <div id="modal-alert" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
+        <div class="card-brutal bg-gray-800 p-6 max-w-sm w-full text-center">
+            <h3 id="modal-title" class="text-2xl font-heading text-yellow-400 mb-4">Aviso</h3>
+            <p id="modal-msg" class="text-lg text-white mb-6">Mensagem</p>
+            <button id="btn-modal-close" class="btn-brutal btn-primary py-2 px-6">OK</button>
+        </div>
+    </div>
+
+    <template id="svg-cow-brazil">
+        <!-- Ficha de Vaquinha com moicano e camisa do brasil -->
+        <svg viewBox="0 0 100 100" class="w-6 h-6 inline-block filter drop-shadow-md">
+            <circle cx="50" cy="50" r="45" fill="#ffffff" stroke="#000000" stroke-width="4"/>
+            <!-- Manchas -->
+            <path d="M 10 40 Q 20 20 40 30 Q 30 50 10 40" fill="#000000"/>
+            <path d="M 80 60 Q 90 80 70 90 Q 60 70 80 60" fill="#000000"/>
+            <!-- Moicano -->
+            <path d="M 40 15 Q 50 -10 60 15 Z" fill="#22c55e" stroke="#000000" stroke-width="3"/>
+            <!-- Olhos -->
+            <circle cx="35" cy="40" r="4" fill="#000000"/>
+            <circle cx="65" cy="40" r="4" fill="#000000"/>
+            <!-- Focinho -->
+            <ellipse cx="50" cy="65" rx="20" ry="15" fill="#fbcfe8" stroke="#000000" stroke-width="3"/>
+            <circle cx="42" cy="62" r="2" fill="#000000"/>
+            <circle cx="58" cy="62" r="2" fill="#000000"/>
+            <!-- Camisa do Brasil (Gola/parte de baixo) -->
+            <path d="M 25 90 L 75 90 C 75 100 25 100 25 90 Z" fill="#eab308" stroke="#000000" stroke-width="3"/>
+        </svg>
+    </template>
+
+    <template id="svg-cow-pink">
+        <!-- Vaca Rosa (A Temida) -->
+        <svg viewBox="0 0 100 100" class="w-8 h-8 inline-block filter drop-shadow-[0_0_8px_rgba(255,105,180,0.8)] animate-pulse-fast">
+            <circle cx="50" cy="50" r="45" fill="#f472b6" stroke="#000000" stroke-width="4"/>
+            <path d="M 20 30 Q 30 10 50 20 Q 40 40 20 30" fill="#be185d"/>
+            <circle cx="35" cy="40" r="5" fill="#000000"/>
+            <circle cx="65" cy="40" r="5" fill="#000000"/>
+            <ellipse cx="50" cy="65" rx="22" ry="16" fill="#f9a8d4" stroke="#000000" stroke-width="3"/>
+            <line x1="40" y1="65" x2="44" y2="65" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+            <line x1="56" y1="65" x2="60" y2="65" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+    </template>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Environment variables setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'efeito-manada-dev';
+        const firebaseConfig = {
+  apiKey: "AIzaSyD-nhirzxFZ-Sz2QFLovmF3GFGYMdj72UI",
+  authDomain: "efeito-manada-1e55b.firebaseapp.com",
+  projectId: "efeito-manada-1e55b",
+  storageBucket: "efeito-manada-1e55b.firebasestorage.app",
+  messagingSenderId: "855003021405",
+  appId: "1:855003021405:web:8d60beec1f62f1bba24db4",
+  measurementId: "G-QX0NX9E79C"
+};
+        const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Init Firebase
+        let app, db, auth;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } catch (e) {
+            console.error("Firebase init error", e);
+        }
+
+        // Global State
+        let currentUser = null;
+        let currentRoomId = null;
+        let roomRef = null;
+        let unsubscribeRoom = null;
+        let isHost = false;
+        let roomState = null;
+        let timerInterval = null;
+        
+        // Audio (Optional, simple tones)
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const actx = new AudioContext();
+        function playTone(freq, type, duration, vol=0.1) {
+            try {
+                if(actx.state === 'suspended') actx.resume();
+                const osc = actx.createOscillator();
+                const gain = actx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, actx.currentTime);
+                gain.gain.setValueAtTime(vol, actx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(actx.destination);
+                osc.start();
+                osc.stop(actx.currentTime + duration);
+            } catch(e){}
+        }
+
+        const PROMPTS = [
+            "Cite um animal que voa.",
+            "Qual o melhor sabor de pizza?",
+            "Uma cor com a letra A.",
+            "Algo que você leva para a praia.",
+            "Um super-poder inútil.",
+            "O pior presente para se ganhar no Natal.",
+            "Uma comida que a maioria das pessoas odeia.",
+            "Uma palavra para descrever o ano de 2020.",
+            "O melhor animal de estimação.",
+            "Um esporte que não cansa.",
+            "Uma fruta vermelha.",
+            "Um vilão de filme famoso.",
+            "O lugar mais frio do mundo.",
+            "Algo que tem botões.",
+            "Uma coisa redonda."
+        ];
+
+        // UI Elements
+        const screens = {
+            login: document.getElementById('screen-login'),
+            lobby: document.getElementById('screen-lobby'),
+            game: document.getElementById('screen-game'),
+            winner: document.getElementById('screen-winner')
+        };
+        const el = {
+            inputNick: document.getElementById('input-nickname'),
+            btnJoin: document.getElementById('btn-join-create'),
+            loginError: document.getElementById('login-error'),
+            userInfo: document.getElementById('user-info'),
+            displayNick: document.getElementById('display-nickname'),
+            btnLeave: document.getElementById('btn-leave'),
+            roomUrl: document.getElementById('room-url'),
+            btnCopy: document.getElementById('btn-copy-link'),
+            playerGrid: document.getElementById('player-grid'),
+            playerCount: document.getElementById('player-count'),
+            hostControls: document.getElementById('host-controls'),
+            btnStart: document.getElementById('btn-start-game'),
+            waitingHostMsg: document.getElementById('waiting-host-msg'),
+            gameHud: document.getElementById('game-hud'),
+            phaseAnswering: document.getElementById('phase-answering'),
+            phaseRevealing: document.getElementById('phase-revealing'),
+            timerDisplay: document.getElementById('timer-display'),
+            currentPrompt: document.getElementById('current-prompt'),
+            inputAnswer: document.getElementById('input-answer'),
+            btnSubmit: document.getElementById('btn-submit-answer'),
+            answerForm: document.getElementById('answer-form'),
+            answerWaiting: document.getElementById('answer-waiting'),
+            answersCount: document.getElementById('answers-count'),
+            totalPlayersCount: document.getElementById('total-players-count'),
+            revealPrompt: document.getElementById('reveal-prompt'),
+            revealResults: document.getElementById('reveal-results'),
+            hostNextRound: document.getElementById('host-next-round'),
+            btnNextRound: document.getElementById('btn-next-round'),
+            waitingNextMsg: document.getElementById('waiting-next-msg'),
+            winnerName: document.getElementById('winner-name'),
+            btnPlayAgain: document.getElementById('btn-play-again'),
+            winnerWaitMsg: document.getElementById('winner-wait-msg')
+        };
+
+        const svgCowBrazil = document.getElementById('svg-cow-brazil').innerHTML;
+        const svgCowPink = document.getElementById('svg-cow-pink').innerHTML;
+
+        // Custom Alert
+        function showAlert(title, msg) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('modal-alert').classList.remove('hidden');
+        }
+        document.getElementById('btn-modal-close').addEventListener('click', () => {
+            document.getElementById('modal-alert').classList.add('hidden');
+        });
+
+        // Switch Screen
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hide'));
+            screens[screenName].classList.remove('hide');
+        }
+
+        async function authenticate() {
+            try {
+                if (initialToken) {
+                    await signInWithCustomToken(auth, initialToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                currentUser = auth.currentUser;
+                return true;
+            } catch (error) {
+                console.error("Auth error:", error);
+                showAlert("Erro", "Não foi possível conectar. Tente novamente.");
+                return false;
+            }
+        }
+
+        // Initialize based on URL
+        window.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentRoomId = urlParams.get('room');
+            
+            showScreen('login');
+            el.inputNick.focus();
+
+            // Setup Listeners
+            el.btnJoin.addEventListener('click', handleJoinCreate);
+            el.inputNick.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleJoinCreate();
+            });
+            el.btnLeave.addEventListener('click', leaveRoom);
+            el.btnCopy.addEventListener('click', () => {
+                el.roomUrl.select();
+                document.execCommand('copy');
+                el.btnCopy.innerText = "Copiado!";
+                setTimeout(() => el.btnCopy.innerText = "📋", 2000);
+            });
+            el.btnStart.addEventListener('click', startGame);
+            el.btnSubmit.addEventListener('click', submitAnswer);
+            el.inputAnswer.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') submitAnswer();
+            });
+            el.btnNextRound.addEventListener('click', nextRound);
+            el.btnPlayAgain.addEventListener('click', resetGameToLobby);
+        });
+
+        async function handleJoinCreate() {
+            const nick = el.inputNick.value.trim();
+            if (!nick) {
+                el.loginError.innerText = "Digite um nickname!";
+                el.loginError.classList.remove('hide');
+                return;
+            }
+            if (nick.length < 2 || nick.length > 15) {
+                el.loginError.innerText = "O nick deve ter entre 2 e 15 letras.";
+                el.loginError.classList.remove('hide');
+                return;
+            }
+
+            el.btnJoin.disabled = true;
+            el.loginError.classList.add('hide');
+
+            const authenticated = await authenticate();
+            if (!authenticated) {
+                el.btnJoin.disabled = false;
+                return;
+            }
+
+            el.displayNick.innerText = nick;
+            el.userInfo.classList.remove('hide');
+
+            if (!currentRoomId) {
+                // Create new room
+                currentRoomId = 'room_' + Math.random().toString(36).substring(2, 9);
+                isHost = true;
+                
+                const roomData = {
+                    id: currentRoomId,
+                    hostId: currentUser.uid,
+                    status: 'lobby',
+                    players: {
+                        [currentUser.uid]: {
+                            name: nick,
+                            score: 0,
+                            hasVacaRosa: false,
+                            connected: true
+                        }
+                    },
+                    currentRound: 0,
+                    currentPrompt: "",
+                    answers: {},
+                    timerEnd: 0,
+                    winner: null
+                };
+
+                roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                await setDoc(roomRef, roomData);
+                
+                // Instead of using history.pushState which fails in blob URLs, 
+                // we will construct the shareable URL and just display it in the roomUrl input.
+                const baseUrl = window.location.href.split('?')[0];
+                const shareUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'room=' + currentRoomId;
+                el.roomUrl.value = shareUrl;
+
+            } else {
+                // Join existing room
+                roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId);
+                const docSnap = await getDoc(roomRef);
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (Object.keys(data.players).length >= 10 && !data.players[currentUser.uid]) {
+                        showAlert("Sala Cheia", "Esta sala já tem 10 jogadores.");
+                        el.btnJoin.disabled = false;
+                        return;
+                    }
+                    if (data.status !== 'lobby' && !data.players[currentUser.uid]) {
+                        showAlert("Jogo em andamento", "O jogo já começou.");
+                        el.btnJoin.disabled = false;
+                        return;
+                    }
+                    
+                    isHost = (data.hostId === currentUser.uid);
+                    
+                    // Add/update player
+                    await updateDoc(roomRef, {
+                        [`players.${currentUser.uid}.name`]: nick,
+                        [`players.${currentUser.uid}.score`]: data.players[currentUser.uid]?.score || 0,
+                        [`players.${currentUser.uid}.hasVacaRosa`]: data.players[currentUser.uid]?.hasVacaRosa || false,
+                        [`players.${currentUser.uid}.connected`]: true
+                    });
+                } else {
+                    showAlert("Erro", "Sala não encontrada!");
+                    el.btnJoin.disabled = false;
+                    return;
+                }
+            }
+
+            listenToRoom();
+        }
+
+        function leaveRoom() {
+            if (unsubscribeRoom) unsubscribeRoom();
+            const url = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.location.href = url;
+        }
+
+        function listenToRoom() {
+            if (!currentUser || !roomRef) return;
+            
+            const baseUrl = window.location.href.split('?')[0];
+            const shareUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'room=' + currentRoomId;
+            el.roomUrl.value = shareUrl;
+
+            unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
+                if (!docSnap.exists()) {
+                    showAlert("Atenção", "A sala foi encerrada.");
+                    leaveRoom();
+                    return;
+                }
+
+                roomState = docSnap.data();
+                isHost = (roomState.hostId === currentUser.uid);
+                
+                updateLobbyUI();
+                updateGameHUD();
+
+                if (roomState.status === 'lobby') {
+                    showScreen('lobby');
+                } else if (roomState.status === 'answering' || roomState.status === 'revealing') {
+                    showScreen('game');
+                    handleGamePhase();
+                } else if (roomState.status === 'gameOver') {
+                    showScreen('winner');
+                    handleGameOver();
+                }
+            }, (error) => {
+                console.error("Listen error:", error);
+            });
+        }
+
+        function updateLobbyUI() {
+            if (!roomState) return;
+            
+            const players = roomState.players || {};
+            const playerIds = Object.keys(players);
+            
+            el.playerCount.innerText = playerIds.length;
+            el.playerGrid.innerHTML = '';
+            
+            playerIds.forEach(id => {
+                const p = players[id];
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-2 font-bold text-center bg-gray-800 ${p.connected ? 'opacity-100' : 'opacity-50'}`;
+                
+                // Simple avatars based on name
+                const avatarLetter = p.name.charAt(0).toUpperCase();
+                const colors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500'];
+                const color = colors[id.charCodeAt(0) % colors.length];
+
+                div.innerHTML = `
+                    <div class="w-12 h-12 ${color} rounded-full border-2 border-black flex items-center justify-center text-xl shadow-[2px_2px_0_0_#000]">
+                        ${avatarLetter}
+                    </div>
+                    <span class="truncate w-full">${p.name} ${id === roomState.hostId ? '👑' : ''}</span>
+                `;
+                el.playerGrid.appendChild(div);
+            });
+
+            if (isHost) {
+                el.hostControls.classList.remove('hide');
+                el.waitingHostMsg.classList.add('hide');
+                el.btnStart.disabled = playerIds.length < 3 || playerIds.length > 10;
+                if(playerIds.length < 3) {
+                    el.btnStart.innerText = "Iniciar (Min 3)";
+                } else {
+                    el.btnStart.innerText = "Iniciar Jogo!";
+                }
+            } else {
+                el.hostControls.classList.add('hide');
+                el.waitingHostMsg.classList.remove('hide');
+            }
+        }
+
+        async function startGame() {
+            if (!isHost || !roomRef || !roomState) return;
+            playTone(400, 'sine', 0.1);
+            
+            // Pick prompt
+            const prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+            
+            // Reset state for new round
+            await updateDoc(roomRef, {
+                status: 'answering',
+                currentRound: 1,
+                currentPrompt: prompt,
+                answers: {},
+                timerEnd: Date.now() + 30000 // 30 seconds
+            });
+        }
+
+        async function nextRound() {
+            if (!isHost || !roomRef) return;
+            playTone(400, 'sine', 0.1);
+            const prompt = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+            
+            await updateDoc(roomRef, {
+                status: 'answering',
+                currentRound: roomState.currentRound + 1,
+                currentPrompt: prompt,
+                answers: {},
+                timerEnd: Date.now() + 30000
+            });
+        }
+
+        async function resetGameToLobby() {
+            if(!isHost || !roomRef) return;
+            // Clear scores and vaca rosa
+            let updates = {
+                status: 'lobby',
+                winner: null,
+                currentRound: 0,
+                currentPrompt: "",
+                answers: {}
+            };
+            Object.keys(roomState.players).forEach(uid => {
+                updates[`players.${uid}.score`] = 0;
+                updates[`players.${uid}.hasVacaRosa`] = false;
+            });
+            await updateDoc(roomRef, updates);
+        }
+
+        function updateGameHUD() {
+            if (!roomState) return;
+            const players = roomState.players || {};
+            el.gameHud.innerHTML = '';
+            
+            Object.keys(players).forEach(id => {
+                const p = players[id];
+                const div = document.createElement('div');
+                div.className = `flex flex-col items-center bg-gray-800 p-2 rounded-lg border-2 border-black min-w-[100px] shadow-[2px_2px_0_0_#000] relative ${id === currentUser.uid ? 'ring-2 ring-yellow-400' : ''}`;
+                
+                const scoreHTML = Array.from({length: p.score}).map(() => svgCowBrazil).join('') || '<span class="text-xs text-gray-500">0</span>';
+                
+                div.innerHTML = `
+                    <span class="font-bold text-sm truncate w-full text-center">${p.name}</span>
+                    <div class="flex flex-wrap justify-center gap-1 mt-1 h-6 items-center w-full">
+                        ${scoreHTML}
+                    </div>
+                    ${p.hasVacaRosa ? `<div class="absolute -top-3 -right-3">${svgCowPink}</div>` : ''}
+                `;
+                el.gameHud.appendChild(div);
+            });
+        }
+
+        function handleGamePhase() {
+            if (roomState.status === 'answering') {
+                el.phaseAnswering.classList.remove('hide');
+                el.phaseRevealing.classList.add('hide');
+                
+                el.currentPrompt.innerText = roomState.currentPrompt;
+                el.inputAnswer.value = '';
+                
+                const playerIds = Object.keys(roomState.players);
+                const answersSubmitted = Object.keys(roomState.answers || {}).length;
+                el.answersCount.innerText = answersSubmitted;
+                el.totalPlayersCount.innerText = playerIds.length;
+                
+                if (roomState.answers && roomState.answers[currentUser.uid]) {
+                    el.answerForm.classList.add('hide');
+                    el.answerWaiting.classList.remove('hide');
+                } else {
+                    el.answerForm.classList.remove('hide');
+                    el.answerWaiting.classList.add('hide');
+                    el.inputAnswer.focus();
+                }
+
+                startTimer();
+            } else if (roomState.status === 'revealing') {
+                el.phaseAnswering.classList.add('hide');
+                el.phaseRevealing.classList.remove('hide');
+                stopTimer();
+                renderReveal();
+            }
+        }
+
+        function startTimer() {
+            stopTimer();
+            const updateTime = () => {
+                if(!roomState || roomState.status !== 'answering') {
+                    stopTimer();
+                    return;
+                }
+                const now = Date.now();
+                const remaining = Math.max(0, Math.ceil((roomState.timerEnd - now) / 1000));
+                el.timerDisplay.innerText = remaining;
+                
+                if (remaining <= 5) el.timerDisplay.classList.add('text-red-500', 'animate-pulse');
+                else el.timerDisplay.classList.remove('text-red-500', 'animate-pulse');
+
+                if (remaining <= 0) {
+                    stopTimer();
+                    if (isHost) {
+                        endRoundAndScore();
+                    }
+                }
+            };
+            updateTime();
+            timerInterval = setInterval(updateTime, 1000);
+        }
+
+        function stopTimer() {
+            if(timerInterval) clearInterval(timerInterval);
+        }
+
+        async function submitAnswer() {
+            const answer = el.inputAnswer.value.trim();
+            if (!answer) return;
+            
+            el.btnSubmit.disabled = true;
+            playTone(600, 'square', 0.1);
+            
+            try {
+                await updateDoc(roomRef, {
+                    [`answers.${currentUser.uid}`]: answer
+                });
+            } catch (e) {
+                console.error("Error submitting:", e);
+                el.btnSubmit.disabled = false;
+            }
+        }
+
+        async function endRoundAndScore() {
+            if (!isHost || !roomState) return;
+
+            const answers = roomState.answers || {};
+            const players = roomState.players;
+            const playerIds = Object.keys(players);
+            
+            // Normalize answers to group them
+            let normalizedMap = {}; // original answer -> normalized
+            let frequency = {}; // normalized -> [userIds]
+            
+            playerIds.forEach(uid => {
+                let rawAns = answers[uid] || "Não respondeu";
+                let norm = rawAns.toLowerCase().trim().replace(/[^\w\s]/gi, '');
+                
+                if(!frequency[norm]) frequency[norm] = [];
+                frequency[norm].push(uid);
+                normalizedMap[uid] = rawAns;
+            });
+
+            // Find majority
+            let maxFreq = 0;
+            let majorityGroups = []; // Could be tie
+            
+            Object.keys(frequency).forEach(norm => {
+                let count = frequency[norm].length;
+                if(norm !== "naorespondeu") { // Don't give points for not answering
+                    if(count > maxFreq) {
+                        maxFreq = count;
+                        majorityGroups = [norm];
+                    } else if (count === maxFreq) {
+                        majorityGroups.push(norm);
+                    }
+                }
+            });
+
+            // If majority is > 1 person, assign points
+            let winnersThisRound = [];
+            if (maxFreq > 1) {
+                majorityGroups.forEach(groupNorm => {
+                    frequency[groupNorm].forEach(uid => winnersThisRound.push(uid));
+                });
+            }
+
+            // Find unique answers (Vaca Rosa logic)
+            // The single most unique answer gets the Vaca Rosa.
+            // If multiple people are unique (freq=1), who gets it? Rule: If exactly one is unique among all, they get it. 
+            // Or if they are the "odd one out". Let's say if exactly 1 person has freq=1, they get the Pink Cow.
+            let uniqueUsers = [];
+            Object.keys(frequency).forEach(norm => {
+                if(frequency[norm].length === 1 && norm !== "naorespondeu") {
+                    uniqueUsers.push(frequency[norm][0]);
+                }
+            });
+
+            let newVacaRosaUser = null;
+            if (uniqueUsers.length === 1) {
+                newVacaRosaUser = uniqueUsers[0];
+            }
+
+            // Apply updates
+            let updates = { status: 'revealing' };
+            let someoneWon = false;
+            let winnerId = null;
+
+            playerIds.forEach(uid => {
+                let currentScore = players[uid].score;
+                let hasVacaRosa = players[uid].hasVacaRosa;
+                
+                if (winnersThisRound.includes(uid)) {
+                    currentScore += 1;
+                    updates[`players.${uid}.score`] = currentScore;
+                }
+                
+                if (newVacaRosaUser) {
+                    // Transfer or set vaca rosa
+                    hasVacaRosa = (uid === newVacaRosaUser);
+                    updates[`players.${uid}.hasVacaRosa`] = hasVacaRosa;
+                }
+                
+                // Win condition check
+                if (currentScore >= 10 && !hasVacaRosa) {
+                    someoneWon = true;
+                    winnerId = uid;
+                }
+            });
+
+            if (someoneWon) {
+                updates.status = 'gameOver';
+                updates.winner = winnerId;
+            }
+
+            await updateDoc(roomRef, updates);
+        }
+
+        function renderReveal() {
+            el.revealPrompt.innerText = roomState.currentPrompt;
+            el.revealResults.innerHTML = '';
+            
+            const answers = roomState.answers || {};
+            const players = roomState.players;
+            
+            // Group for UI
+            let groups = {};
+            Object.keys(players).forEach(uid => {
+                let ans = answers[uid] || "⏳ Tempo Esgotado";
+                let norm = ans.toLowerCase().trim();
+                if(!groups[norm]) groups[norm] = { raw: ans, users: [] };
+                groups[norm].users.push(uid);
+            });
+
+            // Sort by frequency
+            let sortedGroups = Object.values(groups).sort((a,b) => b.users.length - a.users.length);
+
+            sortedGroups.forEach(g => {
+                const isMajority = g.users.length > 1; // Simplified visual indicator
+                const isUnique = g.users.length === 1 && g.raw !== "⏳ Tempo Esgotado";
+
+                const div = document.createElement('div');
+                div.className = `p-4 rounded-xl border-4 border-black text-center ${isMajority ? 'bg-green-600' : (isUnique ? 'bg-purple-600' : 'bg-gray-700')}`;
+                
+                const usersHTML = g.users.map(uid => {
+                    const p = players[uid];
+                    return `<span class="inline-block bg-black/50 px-2 py-1 rounded text-sm m-1 text-white">${p.name} ${p.hasVacaRosa ? ' 💖' : ''}</span>`;
+                }).join('');
+
+                div.innerHTML = `
+                    <div class="text-2xl font-heading mb-2 text-white">${g.raw}</div>
+                    <div class="text-yellow-300 font-bold mb-2">${g.users.length} pessoa(s)</div>
+                    <div>${usersHTML}</div>
+                `;
+                el.revealResults.appendChild(div);
+            });
+
+            if (isHost) {
+                el.hostNextRound.classList.remove('hide');
+                el.waitingNextMsg.classList.add('hide');
+            } else {
+                el.hostNextRound.classList.add('hide');
+                el.waitingNextMsg.classList.remove('hide');
+            }
+        }
+
+        function handleGameOver() {
+            const winner = roomState.players[roomState.winner];
+            if(winner) {
+                el.winnerName.innerText = winner.name + " 🎉";
+                playTone(800, 'sine', 0.5);
+                setTimeout(() => playTone(1200, 'sine', 0.5), 200);
+            }
+            
+            if(isHost) {
+                el.btnPlayAgain.classList.remove('hide');
+                el.winnerWaitMsg.classList.add('hide');
+            } else {
+                el.btnPlayAgain.classList.add('hide');
+                el.winnerWaitMsg.classList.remove('hide');
+            }
+        }
+
+    </script>
+</body>
+</html>
